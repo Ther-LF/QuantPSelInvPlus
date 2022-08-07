@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/therlf/pexsi_v2.0.0/**",
+                "/usr/include/**",
+                "/usr/lib/gcc/x86_64-linux-gnu/9/include/**",
+                "/home/therlf/Software/SuperLU_DIST_install/include/**"
+            ],
+            "defines": [],
+            "compilerPath": "/home/therlf/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-clang-x64"
+        }
+    ],
+    "version": 4
+}
