@@ -654,10 +654,15 @@ int main(int argc, char *argv[])
           //  //将它们按平均分排序
           //  sort(recvBuf, recvBuf + recvSize, cmpAvg);
 //            string chose = "";
+	    bool fille_11 = false;
+            bool fille_10 = false;
+            bool fille_9 = false;
+            bool fille_8 = false;
+            bool fille_7 = false;
             set<string> s;
             for(int i = 0;i<recvSize;i++){
-              if(recvBuf[i].avg > 1e-11){
-                
+              if(recvBuf[i].avg > 1e-11 && !fille_11){
+                fille_11 = true;
                 superCol<<"Avg below 1e-11:";
                 for(string str : s){
                 superCol << str << " ";
@@ -666,8 +671,9 @@ int main(int argc, char *argv[])
               
               }
 
-              if(recvBuf[i].avg > 1e-10){
+              if(recvBuf[i].avg > 1e-10 && !fille_10){
                // cout<<endl;
+                fille_10 = true;
                 superCol<<"Avg below 1e-10:";
                 for(string str : s){
                superCol << str << " ";
@@ -675,8 +681,9 @@ int main(int argc, char *argv[])
 superCol<<endl;
                // cout<<endl;
               }
-              if(recvBuf[i].avg > 1e-9){
+              if(recvBuf[i].avg > 1e-9 && !fille_9){
                // cout<<endl;
+                fille_9 = true;
                 superCol<<"Avg below 1e-9:";
                 for(string str : s){
                superCol << str << " ";
@@ -684,7 +691,8 @@ superCol<<endl;
 superCol<<endl;
                // cout<<endl;
               }
-              if(recvBuf[i].avg > 1e-8){
+              if(recvBuf[i].avg > 1e-8 && !fille_8){
+                 fille_8 = true;
                 superCol<<"Avg below 1e-8:";
                 for(string str : s){
                superCol << str << " ";
@@ -692,10 +700,11 @@ superCol<<endl;
 superCol<<endl;
 
               }
-              if(recvBuf[i].avg > 1e-7){
+              if(recvBuf[i].avg > 1e-7 && !fille_7){
                // cout<<endl;
                // cout<<"Avg below 1e-10"<<chose<<endl;
                 //cout<<endl;
+fille_7 = true;
 superCol<<"Avg below 1e-7:";
                 for(string str : s){
                superCol << str << " ";
