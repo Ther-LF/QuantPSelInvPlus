@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     	Int npcol = mpisize;
 		//Create a communicator with npcol*nprow processors
     	MPI_Comm_split(MPI_COMM_WORLD, mpirank<nprow*npcol, mpirank, &world_comm);
-		std::string Hfile = "H180.csc";
+		std::string Hfile = "H.csc";
 		DistSparseMatrix<Real> HMat;
 		ParaReadDistSparseMatrix( Hfile.c_str(), HMat, world_comm );
 		int dimension = HMat.size;

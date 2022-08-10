@@ -93,11 +93,14 @@ int main(int argc, char **argv)
 #endif
 
   MPI_Init( &argc, &argv );
-
+  
 
   int mpirank, mpisize;
   MPI_Comm_rank( MPI_COMM_WORLD, &mpirank );
   MPI_Comm_size( MPI_COMM_WORLD, &mpisize );
+  if(mpirank == 0){
+    std::cout<<"Hello!!!!!!"<<std::endl;
+  }
   try{
     MPI_Comm world_comm;
 
@@ -383,6 +386,7 @@ int main(int argc, char **argv)
         //将H文件分为不同的列分到每个processor上面
         ParaReadDistSparseMatrix( Hfile.c_str(), HMat, world_comm );  
       else{
+        
         ReadDistSparseMatrixFormatted( Hfile.c_str(), HMat, world_comm ); 
         ParaWriteDistSparseMatrix( "H.csc", HMat, world_comm ); 
       }

@@ -1533,7 +1533,8 @@ void WriteDistSparseMatrixMatlab(const char * filename, DistSparseMatrix<T> & ps
       ErrorHandling( "File cannot be opened!" );
     }
 
-    Int baseval = 1;
+    Int 
+    baseval = 1;
 
     Int numColFirst = pspmat.size / mpisize;
     Int firstCol    = mpirank * numColFirst;
