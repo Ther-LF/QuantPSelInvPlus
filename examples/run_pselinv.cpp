@@ -46,7 +46,8 @@ such enhancements or derivative works thereof, in binary and source code form.
 #include  "ppexsi.hpp"
 
 #include "pexsi/timer.h"
-
+#include <iostream>
+#include <iterator>
 // #define _MYCOMPLEX_
 
 #ifdef _MYCOMPLEX_
@@ -98,9 +99,7 @@ int main(int argc, char **argv)
   int mpirank, mpisize;
   MPI_Comm_rank( MPI_COMM_WORLD, &mpirank );
   MPI_Comm_size( MPI_COMM_WORLD, &mpisize );
-  if(mpirank == 0){
-    std::cout<<"Hello!!!!!!"<<std::endl;
-  }
+
   try{
     MPI_Comm world_comm;
 
@@ -110,9 +109,10 @@ int main(int argc, char **argv)
     std::map<std::string,std::string> options;
 
     OptionsCreate(argc, argv, options);
-    //这里搜寻需要量化的下标，因为H180它为27个supernode，所以小于等于26即可
-    std::set<std::string> quantSuperNode;
+    std::set<std::string> quantSuperNode;//存储量化坐标
+
     int i = 1;
+    //这里注意了一定要把-Q放在最后面
     for(i = 1;i<argc;i+=2){
       if(std::string(argv[i]).compare("-Q") == 0){
         i++;
@@ -122,11 +122,27 @@ int main(int argc, char **argv)
     for(;i<argc;i++){
       quantSuperNode.insert(std::string(argv[i]));
     }
+    //查找量化坐标文件
+    if(options.find("-qidx") != options.end()){
+      std::string quantName = "quant_index" + options["-qidx"];
+      	std::ifstream ifs(quantName.c_str());
+        std::stringstream buffer;
+        buffer << ifs.rdbuf();
+        std::string str(buffer.str());
+        std::vector<std::string> vecTmp = split(str, ' ');
+        std::set<std::string> setTmp(vecTmp.begin(), vecTmp.end());
+        quantSuperNode = setTmp;
+        ifs.close();
+    }
     if(mpirank == 0){
-      std::cout<<std::endl<<"Quant Indices:"<<std::endl;
-      for(std::string str : quantSuperNode){
-        std::cout<<str<<std::endl;
-      }
+      std::cout<<std::endl<<"Quant Size : "<< quantSuperNode.size() <<std::endl;
+    }
+    //找到存储结果的文件
+    std::string fileName;
+    if(options.find("-file") != options.end()){
+      fileName = options["-file"];
+    }else{
+      fileName = "quant_report";
     }
     
     // Default processor number
@@ -375,7 +391,7 @@ int main(int argc, char **argv)
       // Setup grid.
       SuperLUGrid<MYSCALAR> g( world_comm, nprow, npcol );
 
-      int      m, n;
+      int m, n;
       DistSparseMatrix<MYSCALAR>  AMat;
 
       DistSparseMatrix<Real> HMat;
@@ -386,7 +402,6 @@ int main(int argc, char **argv)
         //将H文件分为不同的列分到每个processor上面
         ParaReadDistSparseMatrix( Hfile.c_str(), HMat, world_comm );  
       else{
-        
         ReadDistSparseMatrixFormatted( Hfile.c_str(), HMat, world_comm ); 
         ParaWriteDistSparseMatrix( "H.csc", HMat, world_comm ); 
       }
@@ -614,9 +629,6 @@ int main(int argc, char **argv)
             luMat.LUstructToPMatrix( PMloc );//将LU分解的结果转到PMloc中
             GetTime( timeEnd );
           }
-          if(mpirank == 0){
-            std::cout<<"LUstructToPMatrix done!"<<std::endl;
-          }
           LongInt nnzLU = PMloc.Nnz();
           if( mpirank == 0 ){
             cout << "nonzero in L+U  (PMatrix format) = " << nnzLU << endl;
@@ -628,12 +640,12 @@ int main(int argc, char **argv)
           }
           std::fstream f;
           if( mpirank == 0){
-            f.open("quant_report", ios::out|ios::app);
-            f<<"Quant indices:";
-            for(std::string str : quantSuperNode){
-              f<<str<<" ";
-            }
-            f<<std::endl;
+            f.open(fileName.c_str(), ios::out|ios::app);
+            // f<<"Quant indices:";
+            // for(std::string str : quantSuperNode){
+            //   f<<str<<" ";
+            // }
+            // f<<std::endl;
           }
           if(doSelInv>1){
             // Preparation for the selected inversion
@@ -662,7 +674,7 @@ int main(int argc, char **argv)
   //            std::cout<<"End PreSelInv"<<std::endl;
               if( mpirank == 0 ){
                 Real pre_time = timeEnd - timeSta;
-                cout << mpirank <<":Time for pre-selected inversion is " << pre_time << endl;
+                cout << "Time for pre-selected inversion is " << pre_time << endl;
                 f << "Time for pre-selected inversion is " << pre_time << endl;
               }
     //            std::cout<<"Begin SelInv"<<std::endl;

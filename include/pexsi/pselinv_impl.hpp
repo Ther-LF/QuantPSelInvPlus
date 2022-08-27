@@ -489,7 +489,7 @@ namespace PEXSI{
 
       TIMER_STOP(Allocate_lookup);
 
-      
+
       TIMER_START(Fill_UBuf);
       // Fill UBuf first.  Make the transpose later in the Gemm phase.
       for( Int jb = 0; jb < UrowRecv.size(); jb++ ){
@@ -544,11 +544,12 @@ namespace PEXSI{
           Int isup = LB.blockIdx;//找到对应的L block的supernode行
           Int jsup = UB.blockIdx;//找到对应的U block的supernode列
           T* nzvalAinv = &AinvBuf( rowPtr[ib], colPtr[jb] );//得到(isup, jsup)的第一个数据位置，即第j列第i行，这里是column major
-          Int     ldAinv    = AinvBuf.m();//得到有多少行，这是干嘛勒
+          Int     ldAinv    = AinvBuf.m();//得到有非零行，用于后续列序遍历使用
+          //此时本地的L Block和U Block都是Ainv的形状了
 
           // Pin down the corresponding block in the part of Sinv.
           if( isup >= jsup ){//如果是下三角，用L矩阵
-            std::vector<LBlock<T> >&  LcolSinv = this->L( LBj(jsup, grid_ ) );//找到本processor保存的对应列的所有L Sinv block，不懂为什么现在是L sinv了
+            std::vector<LBlock<T> >&  LcolSinv = this->L( LBj(jsup, grid_ ) );//找到本processor保存的对应列的所有L Sinv block
             bool isBlockFound = false;                                        //是因为现在算法已经开始了进行覆盖了吗？好像是用Ainv block将L block覆盖掉了
             TIMER_START(PARSING_ROW_BLOCKIDX);
             for( Int ibSinv = 0; ibSinv < LcolSinv.size(); ibSinv++ ){
@@ -1203,12 +1204,12 @@ namespace PEXSI{
         // Do I own the diagonal block ?
         Int startIb = (MYROW( grid_ ) == PROW( snode.Index, grid_ ))?1:0;//如果我拥有Lkk，那么要跳过这个block
 
-        NumMat<float> LUpdateBuf_quant(snode.LUpdateBuf.m(), snode.LUpdateBuf.n());
-        for(int j = 0;j<LUpdateBuf_quant.n();j++){
-          for(int i = 0;i<LUpdateBuf_quant.m();i++){
-            LUpdateBuf_quant(i, j) = (float)snode.LUpdateBuf(i, j);
-          }
-        }
+        // NumMat<float> LUpdateBuf_quant(snode.LUpdateBuf.m(), snode.LUpdateBuf.n());
+        // for(int j = 0;j<LUpdateBuf_quant.n();j++){
+        //   for(int i = 0;i<LUpdateBuf_quant.m();i++){
+        //     LUpdateBuf_quant(i, j) = (float)snode.LUpdateBuf(i, j);
+        //   }
+        // }
         for( Int ib = startIb; ib < Lcol.size(); ib++ ){
 
 #ifdef GEMM_PROFILE
@@ -1242,17 +1243,29 @@ namespace PEXSI{
             //     LUpdateBuf_quant(i, j) = (float)LUpdateBuf_data[i + j * LUpdateBuf_quant.m()];
             //   }
             // }
+            NumMat<float> tmp_quant(LB.numRow, snode.DiagBuf.m());
+            for(int j = 0;j<tmp_quant.n(); j++){
+              for(int i = 0;i<tmp_quant.m();i++){
+                tmp_quant(i, j) = (float)snode.LUpdateBuf(snode.RowLocalPtr[ib - startIb] + i, j);
+              }
+            }
             NumMat<float> LB_quant(LB.numRow, LB.numCol);
             for(int j = 0;j<LB_quant.n();j++){
               for(int i = 0;i<LB_quant.m();i++){
                 LB_quant(i, j) = (float)LB.nzval(i, j);
               }
             }
+
             //然后用一个临时的量化Lkk保存它们的结果，而不能直接加进来
             NumMat<float> DiagBuf_quant(SuperSize( snode.Index, super_ ), SuperSize( snode.Index, super_ ));
+
             blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
-                MINUS_ONE<float>(), &LUpdateBuf_quant( snode.RowLocalPtr[ib-startIb], 0 ), snode.LUpdateBuf.m(),
+                MINUS_ONE<float>(), tmp_quant.Data(), tmp_quant.m(),
                 LB_quant.Data(), LB.nzval.m(), ZERO<float>(), DiagBuf_quant.Data(), snode.DiagBuf.m() );
+
+            // blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
+            //     MINUS_ONE<float>(), &LUpdateBuf_quant( snode.RowLocalPtr[ib-startIb], 0 ), snode.LUpdateBuf.m(),
+            //     LB_quant.Data(), LB.nzval.m(), ZERO<float>(), DiagBuf_quant.Data(), snode.DiagBuf.m() );
             //最后把结果加到Lkk中
             for(int j = 0;j<DiagBuf_quant.n();j++){
               for(int i = 0;i<DiagBuf_quant.m();i++){
@@ -1263,14 +1276,14 @@ namespace PEXSI{
             //释放资源
             DiagBuf_quant.deallocate();
             LB_quant.deallocate();
-            
+            tmp_quant.deallocate();
           }
           
 #ifdef _PRINT_STATS_
                 this->localFlops_+=flops::Gemm<T>(snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow);
 #endif
         } 
-        LUpdateBuf_quant.deallocate();
+        // LUpdateBuf_quant.deallocate();
 
 #if ( _DEBUGlevel_ >= 1 )
         statusOFS << std::endl << "["<<snode.Index<<"] "<<   "Updated the diagonal block" << std::endl << std::endl; 
@@ -2078,7 +2091,7 @@ namespace PEXSI{
               std::vector<UBlock<T> > UrowRecv;
               // Save all the data to be updated for { L( isup, snode.Index ) | isup > snode.Index }.
               // The size will be updated in the Gemm phase and the reduce phase
-                            
+          
               NumMat<float> UBuf_other;//记录量化部分的UBuf
               
               bool quantUBuf = false;//记录UBuf是否有被量化的部分
@@ -5268,9 +5281,9 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
 #ifdef _PRINT_STATS_
       this->localFlops_ = 0.0;
 #endif
-      if(grid_->mpirank == 0){
-        std::cout<<"Begin PreSelInv"<<std::endl;
-      }
+      // if(grid_->mpirank == 0){
+      //   std::cout<<"Begin PreSelInv"<<std::endl;
+      // }
       // Real timeCost = 0;//复制数据需要的总时间
       // Real timeSta = 0;//一次复制开始的时间
       // Real timeEnd = 0;//一次复制结束的时间
@@ -5358,10 +5371,6 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
                 for(int j = 0;j<LBn;j++){
                   for(int i = 0;i<LBm;i++){
                     LB_float(i, j) = (float)LB.nzval(i, j);
-                    // if(LB.nzval(i, j) == 0){
-                    //   // std::cout<< "Zero!"<<std::endl;
-                    //   cnt_zero++;
-                    // }
                   }
                 }
                 

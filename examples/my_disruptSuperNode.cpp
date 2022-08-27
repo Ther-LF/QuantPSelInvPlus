@@ -41,34 +41,41 @@ bool cmpRank(struct NodeInfo x, struct NodeInfo y){
 }
 void disrupt(DistSparseMatrix<Real>& HMat){
     //首先打乱rowindLocal的分布 
-    int size = HMat.size;
-    std::unordered_set<int> s;
-    for(int i = 0;i<HMat.colptrLocal.m() - 1;i++){
-        s.clear();
-        int begin = HMat.colptrLocal(i);//rowindLocal的开头
-        int end = HMat.colptrLocal(i + 1);//rowindLocal的结尾
-        //生成end - begin个0 ~ (size - 1)的不重复随机值
-        vector<int> num(end - begin);
-        for(int j = 0;j<end - begin;j++){
-            int rand_num = rand() % (size - 1) + 1;
-            while(s.find(rand_num) != s.end()){
-                rand_num = rand() % (size - 1) + 1;
-            }
-            s.insert(rand_num);
-            num[j] = rand_num;
-        }
-        //将随机值进行排序，从小到大
-        std::sort(num.begin(), num.end());
-        // std::cout<<i<<":"<<std::endl;
-        // for(int j = 0;j<num.size();j++){
-        //     std::cout<<num[j]<<" ";
-        // }
-        //最后填充进rowindLocal中
-        for(int j = begin;j < end;j++){
-            HMat.rowindLocal(j - 1) = num[j - begin];
-        }
+    // int size = HMat.size;
+    // std::unordered_set<int> s;
+    // for(int i = 0;i<HMat.colptrLocal.m() - 1;i++){
+    //     s.clear();
+    //     int begin = HMat.colptrLocal(i);//rowindLocal的开头
+    //     int end = HMat.colptrLocal(i + 1);//rowindLocal的结尾
+    //     //生成end - begin个0 ~ (size - 1)的不重复随机值
+    //     vector<int> num(end - begin);
+    //     for(int j = 0;j<end - begin;j++){
+    //         int rand_num = rand() % (size - 1) + 1;
+    //         while(s.find(rand_num) != s.end()){
+    //             rand_num = rand() % (size - 1) + 1;
+    //         }
+    //         s.insert(rand_num);
+    //         num[j] = rand_num;
+    //     }
+    //     //将随机值进行排序，从小到大
+    //     std::sort(num.begin(), num.end());
+    //     // std::cout<<i<<":"<<std::endl;
+    //     // for(int j = 0;j<num.size();j++){
+    //     //     std::cout<<num[j]<<" ";
+    //     // }
+    //     //最后填充进rowindLocal中
+    //     for(int j = begin;j < end;j++){
+    //         HMat.rowindLocal(j - 1) = num[j - begin];
+    //     }
+    // }
+    int size = HMat.nzvalLocal.m();
+    for(int k = 0;k< size * size ;k++){
+        int a = rand() % size;
+        int b = rand() % size;
+        Real tmp = HMat.nzvalLocal(a);
+        HMat.nzvalLocal(a) = HMat.nzvalLocal(b);
+        HMat.nzvalLocal(b) = tmp;
     }
-
 }
 int main(int argc, char *argv[])
 {
@@ -578,9 +585,6 @@ int main(int argc, char *argv[])
           int superNum = PMloc.NumSuper();
           const GridType* grid_ = PMloc.Grid();
           IntNumVec superPtr_ = super.superPtr;
-	  if(mpirank == 0){
-	    cout<<"superNum:"<<superNum<<endl;
-	  }
           for(int ksup = 0;ksup<superNum;ksup++){
             if( MYCOL( grid_ ) == PCOL( ksup, grid_ ) ){//如果本processor和supernode在同一列，说明本processor确实包含了部分supernode信息
               vector<LBlock<Real> >& Lcol = PMloc.L( LBj( ksup, grid_ ) );//得到所有的LBlock
@@ -596,8 +600,10 @@ int main(int argc, char *argv[])
                   }
                 }
                 //计算平均值
-                int numCol = superPtr_(col + 1) - superPtr_(col);//这个supernode具有的列数
-                int numRow = superPtr_(row + 1) - superPtr_(row);//这个supernode具有的行数
+                // int numCol = superPtr_(col + 1) - superPtr_(col);//这个supernode具有的列数
+                // int numRow = superPtr_(row + 1) - superPtr_(row);//这个supernode具有的行数
+                int numCol = LB.numCol;//用nzval的col
+                int numRow = LB.numRow;//用nzval的row
                 double avg = sum / (numCol * numRow);
                 //计算方差
                 double var = 0;
@@ -672,7 +678,7 @@ int main(int argc, char *argv[])
              //最后综合排名排序
 //             sort(recvBuf, recvBuf + recvSize, cmpRank);
              ofstream superCol;
-             superCol.open("my_disruptQuantInfo");
+             superCol.open("my_nzvalQuantInfo3600");
 //             for(int i = 0;i<1000;i++){//保留前1000个平均值小的supernode就行了
 //               string pos = "(" + to_string(recvBuf[i].row) + "," + to_string(recvBuf[i].col) + ")";
 //               superCol << pos << "\t\t\t\t" << recvBuf[i].avg << "\t\t\t\t" << recvBuf[i].var << endl;
@@ -688,7 +694,10 @@ int main(int argc, char *argv[])
           //  //将它们按平均分排序
           //  sort(recvBuf, recvBuf + recvSize, cmpAvg);
 //            string chose = "";
-	    bool fille_11 = false;
+
+
+            //保留quantindex信息的 : begin
+	          bool fille_11 = false;
             bool fille_10 = false;
             bool fille_9 = false;
             bool fille_8 = false;
@@ -712,8 +721,8 @@ int main(int argc, char *argv[])
                 superCol<<"Avg below 1e-10:";
                 for(string str : s){
                superCol << str << " ";
-}
-superCol<<endl;
+                }
+                superCol<<endl;
                // cout<<endl;
               }
               if(recvBuf[i].avg > 1e-9 && !fille_9){
@@ -722,8 +731,8 @@ superCol<<endl;
                 superCol<<"Avg below 1e-9:";
                 for(string str : s){
                superCol << str << " ";
-}
-superCol<<endl;
+              }
+              superCol<<endl;
                // cout<<endl;
               }
               if(recvBuf[i].avg > 1e-8 && !fille_8){
@@ -731,28 +740,29 @@ superCol<<endl;
                 superCol<<"Avg below 1e-8:";
                 for(string str : s){
                superCol << str << " ";
-}
-superCol<<endl;
+              }
+                superCol<<endl;
 
               }
               if(recvBuf[i].avg > 1e-7 && !fille_7){
                // cout<<endl;
                // cout<<"Avg below 1e-10"<<chose<<endl;
                 //cout<<endl;
-fille_7 = true;
-superCol<<"Avg below 1e-7:";
-                for(string str : s){
-               superCol << str << " ";
-}
-superCol<<endl;
-                
-break;
+                fille_7 = true;
+                superCol<<"Avg below 1e-7:";
+                  for(string str : s){
+                superCol << str << " ";
+                }
+                superCol<<endl;
+                  
+                break;
               }
               s.insert(to_string(recvBuf[i].row) + "," + to_string(recvBuf[i].col));
               //chose += " " + to_string(recvBuf[i].row) + "," + to_string(recvBuf[i].col);
             }
             //cout<<chose<<endl;
-		superCol.close();         
+            //保留quantindex信息的 : end
+		        superCol.close();         
  }
           //最后释放这些资源
          // superCol.close();

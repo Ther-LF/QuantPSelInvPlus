@@ -69,6 +69,12 @@ my_dispalySuperNode: my_dispalySuperNode.o ${PEXSI_LIB} ../include/pexsi/*.hpp
 my_disruptSuperNode: my_disruptSuperNode.o ${PEXSI_LIB} ../include/pexsi/*.hpp 
 	($(LOADER) -o $@_${SUFFIX} my_disruptSuperNode.o  ../src/lapack.o $(LOADOPTS) )
 
+my_showSingleSupernode: my_showSingleSupernode.o ${PEXSI_LIB} ../include/pexsi/*.hpp 
+	($(LOADER) -o $@_${SUFFIX} my_showSingleSupernode.o  ../src/lapack.o $(LOADOPTS) )
+
+my_analyzeSuperNode: my_analyzeSuperNode.o ${PEXSI_LIB} ../include/pexsi/*.hpp 
+	($(LOADER) -o $@_${SUFFIX} my_analyzeSuperNode.o  ../src/lapack.o $(LOADOPTS) )
+
 run_pselinv_unsym: run_pselinv_unsym.o ${PEXSI_LIB} 
 	($(LOADER) -o $@_${SUFFIX} run_pselinv_unsym.o  $(LOADOPTS) )
 
@@ -94,6 +100,12 @@ my_dispalySuperNode.o : my_dispalySuperNode.cpp
 	${CXX} -c ${CXXFLAGS} ${CPPDEFS} $< 
 
 my_disruptSuperNode.o : my_disruptSuperNode.cpp
+	${CXX} -c ${CXXFLAGS} ${CPPDEFS} $< 
+
+my_showSingleSupernode.o : my_showSingleSupernode.cpp
+	${CXX} -c ${CXXFLAGS} ${CPPDEFS} $< 
+
+my_analyzeSuperNode.o : my_analyzeSuperNode.cpp
 	${CXX} -c ${CXXFLAGS} ${CPPDEFS} $< 
 
 run_pselinv_unsym.o: run_pselinv_unsym.cpp 

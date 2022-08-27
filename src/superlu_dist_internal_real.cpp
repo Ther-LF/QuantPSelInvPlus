@@ -769,7 +769,7 @@ RealSuperLUData::CheckErrorDistMultiVector	( NumMat<Real>& xLocal, NumMat<Real>&
 void
 RealSuperLUData::LUstructToPMatrix	( PMatrix<Real>& PMloc )
 {
-  const dLocalLU_t* Llu   = ptrData->LUstruct.Llu;
+  const dLocalLU_t* Llu   = ptrData->LUstruct.Llu;//保存了LU分解结果的结构体
   const GridType* grid   = PMloc.Grid();
   const SuperNodeType* super = PMloc.SuperNode();
   Int numSuper = PMloc.NumSuper();
@@ -778,38 +778,39 @@ RealSuperLUData::LUstructToPMatrix	( PMatrix<Real>& PMloc )
 #if ( _DEBUGlevel_ >= 1 )
   statusOFS << std::endl << "LUstructToPMatrix::L part" << std::endl;
 #endif
-
+  //根据本地的大小调整ColBlockIdx和RowBlockIdx的大小
   PMloc.ColBlockIdx().clear();
   PMloc.RowBlockIdx().clear();
   PMloc.ColBlockIdx().resize( PMloc.NumLocalBlockCol() );
   PMloc.RowBlockIdx().resize( PMloc.NumLocalBlockRow() );
-
+  //对于本地的所有column
   for( Int jb = 0; jb < PMloc.NumLocalBlockCol(); jb++ ){
-    Int bnum = GBj( jb, grid );
-    if( bnum >= numSuper ) continue;
+    Int bnum = GBj( jb, grid );//找到它在全局的下标
+    if( bnum >= numSuper ) continue;//如果它在全局的下标大于等于所有supernode，那就错了？
 
     Int cnt = 0;                                // Count for the index in LUstruct
     Int cntval = 0;                             // Count for the nonzero values
     Int cntidx = 0;                             // Count for the nonzero block indexes
     const Int* index = Llu->Lrowind_bc_ptr[jb];
-    if( index ){ 
+    if( index ){ //如果index对应的size不为空
       // Not an empty column, start a new column then.
-      std::vector<LBlock<Real> >& Lcol = PMloc.L(jb);
-      Lcol.resize( index[cnt++] );
+      std::vector<LBlock<Real> >& Lcol = PMloc.L(jb);//得到本地对应的L Block数组
+      Lcol.resize( index[cnt++] );//分配对应的大小
 
 
-      Int lda = index[cnt++];
+      Int lda = index[cnt++];//得到下一个东西，不懂
 
 
-      Int savCnt = cnt;
-      IntNumVec LIndices(Lcol.size());
+      Int savCnt = cnt;//暂时保留一下这个cnt
+      IntNumVec LIndices(Lcol.size());//保留Block的indices
       for( Int iblk = 0; iblk < Lcol.size(); iblk++ ){
         Int blockIdx    = index[cnt++];
         Int numRow      = index[cnt++];
         cnt += numRow;
-        LIndices[iblk] = blockIdx;
+        LIndices[iblk] = blockIdx;//保留block index
       }
       //      statusOFS<<"Unsorted blockidx for L are: "<<LIndices<<std::endl;
+      //下面好像是为了加速查询
       //sort the array
       IntNumVec sortedIndices(Lcol.size());
       for(Int i = 0; i<sortedIndices.m(); ++i){ sortedIndices[i] = i;}
@@ -832,10 +833,10 @@ RealSuperLUData::LUstructToPMatrix	( PMatrix<Real>& PMloc )
         LB.blockIdx    = blockIdx;
 
         PMloc.ColBlockIdx(jb).push_back(LB.blockIdx);
-        Int LBi = LB.blockIdx / grid->numProcRow; 
+        Int LBi = LB.blockIdx / grid->numProcRow; //确实是这样的，这一行应该就确定了blockIdx是行的supernode
         PMloc.RowBlockIdx( LBi ).push_back( bnum );
 
-
+        //行和列的设置
         LB.numRow      = index[cnt++];
         LB.numCol      = super->superPtr[bnum+1] - super->superPtr[bnum];
         LB.rows        = IntNumVec( LB.numRow, true, const_cast<Int*>(&index[cnt]) );

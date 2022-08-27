@@ -257,4 +257,5 @@ run_pselinv.o run_pselinv.d : run_pselinv.cpp /usr/include/stdc-predef.h \
  /software/pexsi_v2.0.0/include/pexsi/pselinv_unsym_impl.hpp \
  /usr/include/c++/9/random /usr/include/c++/9/bits/random.h \
  /usr/include/x86_64-linux-gnu/c++/9/bits/opt_random.h \
- /usr/include/c++/9/bits/random.tcc
+ /usr/include/c++/9/bits/random.tcc /usr/include/c++/9/iterator \
+ /usr/include/c++/9/bits/stream_iterator.h
