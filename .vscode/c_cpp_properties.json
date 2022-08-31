@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "/home/luofan/gitRepo/QuantPSelInvPlus/include/**",
                 "/usr/lib/x86_64-linux-gnu/openmpi/include/**",
-                "/home/luofan/software/superlu_dist-7.2.0/include/**"
+                "/home/luofan/software/superlu_dist-7.2.0/include/**",
+                "/usr/local/cuda-11.6/targets/x86_64-linux/include/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

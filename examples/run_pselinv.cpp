@@ -83,7 +83,6 @@ std::vector<std::string> split(const std::string &s, char delim) {
 }
 int main(int argc, char **argv) 
 {
-
   if( argc < 3 ) {
     Usage();
     return 0;

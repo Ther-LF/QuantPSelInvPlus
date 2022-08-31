@@ -1,0 +1,77 @@
+Time for pre-selected inversion is 5.70645
+Time for numerical selected inversion is 7.74867
+Time for total selected inversion is 13.4996
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 4.36199
+Time for numerical selected inversion is 7.07922
+Time for total selected inversion is 11.4856
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 7.5253
+Time for numerical selected inversion is 5.26314
+Time for total selected inversion is 12.8328
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 7.81093
+Time for numerical selected inversion is 6.1856
+Time for total selected inversion is 14.041
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 8.00154
+Time for numerical selected inversion is 6.80924
+Time for total selected inversion is 14.8551
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 8.46139
+Time for numerical selected inversion is 6.21174
+Time for total selected inversion is 14.7176
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 8.4527
+Time for numerical selected inversion is 6.12821
+Time for total selected inversion is 14.6253
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 7.2144
+Time for numerical selected inversion is 6.97609
+Time for total selected inversion is 14.2349
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 4.01839
+Time for numerical selected inversion is 8.48626
+Time for total selected inversion is 12.5491
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 5.25583
+Time for numerical selected inversion is 5.28785
+Time for total selected inversion is 10.588
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+
+Time for pre-selected inversion is 2.09738
+Time for numerical selected inversion is 4.17854
+Time for total selected inversion is 6.32077
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 3.21789e-07
+

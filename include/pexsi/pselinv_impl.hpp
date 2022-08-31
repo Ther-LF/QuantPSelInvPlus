@@ -55,6 +55,13 @@ such enhancements or derivative works thereof, in binary and source code form.
 #include "pexsi/flops.hpp"
 #include <omp.h>
 
+void gpu_blas_mmul
+( char transA, char transB, int m, int n, int k, 
+  float alpha, const float* A, int lda, const float* B, int ldb,
+  float beta,        float* C, int ldc );
+
+void gpu_blas_trsm( char side, char uplo, char trans, char unit, int m, int n,
+  float alpha, const float* A, int lda, float* B, int ldb );
 #define MPI_MAX_COMM (1024)
 #define BCAST_THRESHOLD 16
 
@@ -1259,9 +1266,12 @@ namespace PEXSI{
             //然后用一个临时的量化Lkk保存它们的结果，而不能直接加进来
             NumMat<float> DiagBuf_quant(SuperSize( snode.Index, super_ ), SuperSize( snode.Index, super_ ));
 
-            blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
+            gpu_blas_mmul( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
                 MINUS_ONE<float>(), tmp_quant.Data(), tmp_quant.m(),
                 LB_quant.Data(), LB.nzval.m(), ZERO<float>(), DiagBuf_quant.Data(), snode.DiagBuf.m() );
+            // blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
+            //     MINUS_ONE<float>(), tmp_quant.Data(), tmp_quant.m(),
+            //     LB_quant.Data(), LB.nzval.m(), ZERO<float>(), DiagBuf_quant.Data(), snode.DiagBuf.m() );
 
             // blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
             //     MINUS_ONE<float>(), &LUpdateBuf_quant( snode.RowLocalPtr[ib-startIb], 0 ), snode.LUpdateBuf.m(),
@@ -2112,7 +2122,6 @@ namespace PEXSI{
                 //没错！这里就是第三步，这里有一个U的转置！
                 //所以一定是第三步！
                 //下面的意思表示:LUpdateBuf = -1 * AinvBuf * Ubuf^T + 0 * LUpdateBuf
-            
                 blas::Gemm( 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
                     AinvBuf.Data(), AinvBuf.m(), 
                     UBuf.Data(), UBuf.m(), ZERO<T>(),
@@ -2139,16 +2148,21 @@ namespace PEXSI{
                 //公式为-1 * AinvBuf * (UBuf + UBuf_other)^T
                 //即(1) -1 * AinvBuf * Ubuf^T + (2) -1 * AinvBuf* UBuf_other^T
                 //这里首先计算(1)，并且把结果保存在最终的结果LUpdateBuf中，后面的结果都是直接加在上面的
+
                 blas::Gemm( 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
                     AinvBuf.Data(), AinvBuf.m(), 
                     UBuf.Data(), UBuf.m(), ZERO<T>(),
                     snode.LUpdateBuf.Data(), snode.LUpdateBuf.m() ); 
                 
                 //然后计算(2)，将结果保存在quantBuf中
-                blas::Gemm('N', 'T', AinvBuf_quant.m(), UBuf_other.m(), AinvBuf_quant.n(), MINUS_ONE<float>(),
+                gpu_blas_mmul('N', 'T', AinvBuf_quant.m(), UBuf_other.m(), AinvBuf_quant.n(), MINUS_ONE<float>(),
                     AinvBuf_quant.Data(), AinvBuf_quant.m(),
                     UBuf_other.Data(), UBuf_other.m(), ZERO<float>(),
                     quantBuf.Data(), quantBuf.m());
+                // blas::Gemm('N', 'T', AinvBuf_quant.m(), UBuf_other.m(), AinvBuf_quant.n(), MINUS_ONE<float>(),
+                //     AinvBuf_quant.Data(), AinvBuf_quant.m(),
+                //     UBuf_other.Data(), UBuf_other.m(), ZERO<float>(),
+                //     quantBuf.Data(), quantBuf.m());
                 
                 //将quantBuf的结果添加到LUpadateBuf中
                 for(int j = 0;j<quantBuf.n();j++){
@@ -5377,7 +5391,8 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
                 // GetTime(timeEnd);
                 // timeCost += timeEnd - timeSta;
                 // std::cout<<"Copy LB done"<<std::endl;
-                blas::Trsm('R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
+                gpu_blas_trsm('R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
+                // blas::Trsm('R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
                 // blas::Trsm( 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(),
                 //   (const float*)nzvalLDiag.Data(), LB.numCol, (float)LB.nzval.Data(), LB.numRow );
                 // std::cout<<"float TRSM done"<<std::endl;
