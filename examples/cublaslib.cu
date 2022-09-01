@@ -17,9 +17,16 @@ void print_matrix(const float *A, int nr_rows_A, int nr_cols_A) {
     std::cout << std::endl;
 }
 
+void initializeHandle(cublasHandle_t& handle){
+    cublasCreate(&handle);
+}
+void destoryHandle(cublasHandle_t& handle){
+    cublasDestroy(handle);
+}
+
 // Multiply the arrays A and B on GPU and save the result in C
 // C(m,n) = A(m,k) * B(k,n)
-void gpu_blas_mmul( char transA, char transB, int m, int n, int k, 
+void gpu_blas_mmul(cublasHandle_t& handle, char transA, char transB, int m, int n, int k, 
   float alpha, const float* A, int lda, const float* B, int ldb,
   float beta,        float* C, int ldc ){
 
@@ -36,8 +43,8 @@ void gpu_blas_mmul( char transA, char transB, int m, int n, int k,
 
 
 	// Create a handle for CUBLAS
-	cublasHandle_t handle;
-	cublasCreate(&handle);
+	// cublasHandle_t handle;
+	// cublasCreate(&handle);
 	cublasOperation_t opA = CUBLAS_OP_N;
 	cublasOperation_t opB = CUBLAS_OP_N;
 	if(transA == 'T'){
@@ -50,7 +57,7 @@ void gpu_blas_mmul( char transA, char transB, int m, int n, int k,
 	// Do the actual multiplication
 	cublasSgemm(handle, opA, opB, m, n, k, &alpha, d_A, lda, d_B, ldb, &beta, d_C, ldc);
 	// Destroy the handle
-	cublasDestroy(handle);
+	// cublasDestroy(handle);
 
 	// Copy (and print) the result on host memory
 	cudaMemcpy(C,d_C,m * n * sizeof(float),cudaMemcpyDeviceToHost);
@@ -61,7 +68,7 @@ void gpu_blas_mmul( char transA, char transB, int m, int n, int k,
 	cudaFree(d_C);	
 }
 
-void gpu_blas_trsm( char side, char uplo, char trans, char unit, int m, int n,
+void gpu_blas_trsm(cublasHandle_t& handle, char side, char uplo, char trans, char unit, int m, int n,
   float alpha, const float* A, int lda, float* B, int ldb ){
 
 	// settings in gpu
@@ -113,13 +120,13 @@ void gpu_blas_trsm( char side, char uplo, char trans, char unit, int m, int n,
     cudaMemcpy(d_B, B, rowB * colB * sizeof(float), cudaMemcpyHostToDevice);
 
 	// Create a handle for CUBLAS
-	cublasHandle_t handle;
-	cublasCreate(&handle);
+	// cublasHandle_t handle;
+	// cublasCreate(&handle);
 
 	// Do the actual trsm
 	cublasStrsm(handle, cuSide, cuUplo, cuTrans, cuUnit, m, n, &alpha, d_A, lda, d_B, ldb);
 	// Destroy the handle
-	cublasDestroy(handle);
+	// cublasDestroy(handle);
 
 	// Copy (and print) the result on host memory
 	cudaMemcpy(B, d_B, m * n * sizeof(float), cudaMemcpyDeviceToHost);

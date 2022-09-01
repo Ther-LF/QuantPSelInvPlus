@@ -49,6 +49,13 @@
         "random": "cpp",
         "set": "cpp",
         "string": "cpp",
-        "optional": "cpp"
+        "optional": "cpp",
+        "bitset": "cpp",
+        "chrono": "cpp",
+        "condition_variable": "cpp",
+        "ratio": "cpp",
+        "mutex": "cpp",
+        "thread": "cpp",
+        "__nullptr": "cpp"
     }
 }

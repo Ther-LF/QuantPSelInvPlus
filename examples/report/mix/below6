@@ -1,0 +1,70 @@
+Time for pre-selected inversion is 0.301682
+Time for numerical selected inversion is 4.14437
+Time for total selected inversion is 4.49715
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301587
+Time for numerical selected inversion is 4.14726
+Time for total selected inversion is 4.5013
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301678
+Time for numerical selected inversion is 4.16361
+Time for total selected inversion is 4.51508
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301939
+Time for numerical selected inversion is 4.15766
+Time for total selected inversion is 4.50947
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301722
+Time for numerical selected inversion is 4.16339
+Time for total selected inversion is 4.51621
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301514
+Time for numerical selected inversion is 4.15417
+Time for total selected inversion is 4.5072
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301642
+Time for numerical selected inversion is 4.15262
+Time for total selected inversion is 4.50616
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301795
+Time for numerical selected inversion is 4.16918
+Time for total selected inversion is 4.5201
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.301774
+Time for numerical selected inversion is 4.19091
+Time for total selected inversion is 4.54429
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+
+Time for pre-selected inversion is 0.30173
+Time for numerical selected inversion is 4.19654
+Time for total selected inversion is 4.54991
+Tr[Ainv2 * AMat] = 
+(3600,0)
+|N - Tr[Ainv2 * AMat]| = 1.07091e-07
+

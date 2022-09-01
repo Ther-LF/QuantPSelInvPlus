@@ -68,6 +68,7 @@ such enhancements or derivative works thereof, in binary and source code form.
 
 #include <set>
 
+#include <cublas_v2.h>
 
 //#define IDX_TO_TAG(lidx,tag) (SELINV_TAG_COUNT*(lidx)+(tag)) 
 #define sym_IDX_TO_TAG( lidx, tag, numSuper, max)  ((SELINV_TAG_COUNT)*(numSuper)*((lidx)%((max)+1))+(tag))
@@ -671,7 +672,7 @@ protected:
 
 
   /// @brief SelInvIntra_P2p
-  inline void SelInvIntra_P2p(Int lidx,Int & rank, std::set<std::string> & quantSuperNode );
+  inline void SelInvIntra_P2p(Int lidx,Int & rank, cublasHandle_t& handle, std::set<std::string> & quantSuperNode );
 
   /// @brief SelInv_lookup_indexes
   inline void SelInv_lookup_indexes(SuperNodeBufferType & snode, std::vector<LBlock<T> > & LcolRecv, std::vector<UBlock<T> > & UrowRecv, NumMat<T> & AinvBuf, NumMat<T> & UBuf, NumMat<float> & UBuf_quant, std::set<std::string> & quantSuperNode, bool & quantUBuf);
@@ -684,7 +685,7 @@ protected:
   inline void UnpackData(SuperNodeBufferType & snode, std::vector<LBlock<T> > & LcolRecv, std::vector<UBlock<T> > & UrowRecv);
 
   /// @brief ComputeDiagUpdate
-  inline void ComputeDiagUpdate(SuperNodeBufferType & snode, std::set<std::string> quantSuperNode);
+  inline void ComputeDiagUpdate(SuperNodeBufferType & snode, cublasHandle_t& handle, std::set<std::string> quantSuperNode);
 
   /// @brief SendRecvCD_UpdateU
   inline void SendRecvCD_UpdateU(std::vector<SuperNodeBufferType > & arrSuperNodes, Int stepSuper);
@@ -826,7 +827,7 @@ public:
   ///
   /// PreSelInv assumes that
   /// PEXSI::PMatrix::ConstructCommunicationPattern has been executed.
-  virtual void PreSelInv(std::set<std::string> & quantSuperNode );
+  virtual void PreSelInv(cublasHandle_t& handle, std::set<std::string> & quantSuperNode );
 
   /// @brief SelInv is the main function for the selected inversion.
   ///
@@ -952,10 +953,10 @@ public:
   ///
   ///
   ///
-  virtual void SelInv( std::set<std::string> & quantSuperNode);
+  virtual void SelInv(cublasHandle_t& handle, std::set<std::string> & quantSuperNode);
 
   /// @brief Point-to-point version of the selected inversion.
-  void SelInv_P2p( std::set<std::string> & quantSuperNode);
+  void SelInv_P2p(cublasHandle_t& handle, std::set<std::string> & quantSuperNode);
 
 
   /// @brief GetDiagonal extracts the diagonal elements of the PMatrix.

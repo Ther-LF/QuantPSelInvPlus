@@ -247,6 +247,27 @@ run_fermi.o run_fermi.d : run_fermi.cpp /usr/include/stdc-predef.h \
  /software/pexsi_v2.0.0/include/pexsi/TreeBcast_v2_impl.hpp \
  /software/pexsi_v2.0.0/include/pexsi/TreeReduce_v2.hpp \
  /software/pexsi_v2.0.0/include/pexsi/TreeReduce_v2_impl.hpp \
+ /usr/local/cuda/include/cublas_v2.h /usr/local/cuda/include/cublas_api.h \
+ /usr/local/cuda/include/driver_types.h \
+ /usr/local/cuda/include/crt/host_defines.h \
+ /usr/local/cuda/include/vector_types.h \
+ /usr/lib/gcc/x86_64-linux-gnu/9/include/limits.h \
+ /usr/lib/gcc/x86_64-linux-gnu/9/include/syslimits.h \
+ /usr/include/limits.h /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/local_lim.h \
+ /usr/include/linux/limits.h \
+ /usr/include/x86_64-linux-gnu/bits/posix2_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/xopen_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/uio_lim.h \
+ /usr/local/cuda/include/cuComplex.h /usr/include/c++/9/math.h \
+ /usr/local/cuda/include/cuda_fp16.h \
+ /usr/local/cuda/include/cuda_fp16.hpp /usr/include/c++/9/cstring \
+ /usr/include/string.h /usr/include/strings.h \
+ /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
+ /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
+ /usr/local/cuda/include/cuda_bf16.h \
+ /usr/local/cuda/include/cuda_bf16.hpp \
+ /usr/local/cuda/include/library_types.h \
  /software/pexsi_v2.0.0/include/pexsi/pselinv_impl.hpp \
  /software/pexsi_v2.0.0/include/pexsi/flops.hpp \
  /usr/lib/gcc/x86_64-linux-gnu/9/include/omp.h \

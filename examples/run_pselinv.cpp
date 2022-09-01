@@ -48,6 +48,7 @@ such enhancements or derivative works thereof, in binary and source code form.
 #include "pexsi/timer.h"
 #include <iostream>
 #include <iterator>
+#include <cublas_v2.h>
 // #define _MYCOMPLEX_
 
 #ifdef _MYCOMPLEX_
@@ -60,7 +61,8 @@ such enhancements or derivative works thereof, in binary and source code form.
 using namespace PEXSI;
 using namespace std;
 
-
+void destoryHandle(cublasHandle_t& handle);
+void initializeHandle(cublasHandle_t& handle);
 
 void Usage(){
   std::cout << "Usage" << std::endl << "run_pselinv -T [isText] -F [doFacto -E [doTriSolve] -Sinv [doSelInv]]  -H <Hfile> -S [Sfile] -colperm [colperm] -r [nprow] -c [npcol] -npsymbfact [npsymbfact] -P [maxpipelinedepth] -SinvBcast [doSelInvBcast] -SinvPipeline [doSelInvPipeline] -SinvHybrid [doSelInvHybrid] -rshift [real shift] -ishift [imaginary shift] -ToDist [doToDist] -Diag [doDiag] -SS [symmetricStorage]" << std::endl;
@@ -596,6 +598,11 @@ int main(int argc, char **argv)
 
         if(doConvert || doSelInv>=1)
         {
+
+          cublasHandle_t handle;// Gpu device handle
+          // Initialize the handle
+          initializeHandle(handle);
+
           Real timeTotalSelInvSta, timeTotalSelInvEnd;
 
           NumVec<MYSCALAR> diag;
@@ -668,7 +675,7 @@ int main(int argc, char **argv)
               GetTime( timeTotalOffsetEnd );
 //	      std::cout<<"Begin PreSelInv"<<std::endl;
               GetTime( timeSta );
-              PMlocIt.PreSelInv(quantSuperNode);//进行SelInv的准备工作，对应于原论文算法的第2步
+              PMlocIt.PreSelInv(handle, quantSuperNode);//进行SelInv的准备工作，对应于原论文算法的第2步
               GetTime( timeEnd );
   //            std::cout<<"End PreSelInv"<<std::endl;
               if( mpirank == 0 ){
@@ -680,7 +687,7 @@ int main(int argc, char **argv)
 
               // Main subroutine for selected inversion
               GetTime( timeSta );
-              PMlocIt.SelInv(quantSuperNode);
+              PMlocIt.SelInv(handle, quantSuperNode);
               GetTime( timeEnd );
               if( mpirank == 0 ){
                 cout << "Time for numerical selected inversion is " << timeEnd  - timeSta << endl;
@@ -788,7 +795,7 @@ int main(int argc, char **argv)
             GetTime( timeSta );
          //  if(mpirank == 0)
       //      std::cout<<"Begin PreSelInv"<<std::endl;
-            PMloc.PreSelInv(quantSuperNode);
+            PMloc.PreSelInv(handle, quantSuperNode);
             MPI_Barrier(world_comm);
           //  if(mpirank == 0)
         //   std::cout<<"End PreSelInv"<<std::endl;
@@ -801,7 +808,7 @@ int main(int argc, char **argv)
 
             // Main subroutine for selected inversion
             GetTime( timeSta );
-            PMloc.SelInv(quantSuperNode);
+            PMloc.SelInv(handle, quantSuperNode);
             GetTime( timeEnd );
             if( mpirank == 0 ){
               cout << "Time for numerical selected inversion is " << timeEnd  - timeSta << endl;
@@ -920,6 +927,7 @@ int main(int argc, char **argv)
             f<<std::endl;
             f.close();
           }
+          destoryHandle(handle);
           delete PMlocPtr;
           delete superPtr;
           delete g1Ptr;

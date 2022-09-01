@@ -48,19 +48,18 @@ such enhancements or derivative works thereof, in binary and source code form.
 
 #include <list>
 #include <limits>
-
+#include <cublas_v2.h>
 #include "pexsi/timer.h"
 #include "pexsi/superlu_dist_interf.hpp"
 
 #include "pexsi/flops.hpp"
 #include <omp.h>
 
-void gpu_blas_mmul
-( char transA, char transB, int m, int n, int k, 
+void gpu_blas_mmul(cublasHandle_t& handle, char transA, char transB, int m, int n, int k, 
   float alpha, const float* A, int lda, const float* B, int ldb,
   float beta,        float* C, int ldc );
 
-void gpu_blas_trsm( char side, char uplo, char trans, char unit, int m, int n,
+void gpu_blas_trsm(cublasHandle_t& handle, char side, char uplo, char trans, char unit, int m, int n,
   float alpha, const float* A, int lda, float* B, int ldb );
 #define MPI_MAX_COMM (1024)
 #define BCAST_THRESHOLD 16
@@ -1192,7 +1191,7 @@ namespace PEXSI{
     }
 
   template<typename T>
-    inline void PMatrix<T>::ComputeDiagUpdate(SuperNodeBufferType & snode, std::set<std::string> quantSuperNode)
+    inline void PMatrix<T>::ComputeDiagUpdate(SuperNodeBufferType & snode, cublasHandle_t& handle, std::set<std::string> quantSuperNode)
     {
 
       //---------Computing  Diagonal block, all processors in the column are participating to all pipelined supernodes
@@ -1266,7 +1265,7 @@ namespace PEXSI{
             //然后用一个临时的量化Lkk保存它们的结果，而不能直接加进来
             NumMat<float> DiagBuf_quant(SuperSize( snode.Index, super_ ), SuperSize( snode.Index, super_ ));
 
-            gpu_blas_mmul( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
+            gpu_blas_mmul(handle, 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
                 MINUS_ONE<float>(), tmp_quant.Data(), tmp_quant.m(),
                 LB_quant.Data(), LB.nzval.m(), ZERO<float>(), DiagBuf_quant.Data(), snode.DiagBuf.m() );
             // blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
@@ -1610,7 +1609,7 @@ namespace PEXSI{
     }
 
   template<typename T>
-    inline void PMatrix<T>::SelInvIntra_P2p(Int lidx,Int & rank, std::set<std::string> & quantSuperNode ) {
+    inline void PMatrix<T>::SelInvIntra_P2p(Int lidx,Int & rank, cublasHandle_t& handle, std::set<std::string> & quantSuperNode ) {
       //这是一次并行
       if (options_->symmetricStorage!=1){
 #if defined (PROFILE) || defined(PMPI) || defined(USE_TAU)
@@ -2155,7 +2154,7 @@ namespace PEXSI{
                     snode.LUpdateBuf.Data(), snode.LUpdateBuf.m() ); 
                 
                 //然后计算(2)，将结果保存在quantBuf中
-                gpu_blas_mmul('N', 'T', AinvBuf_quant.m(), UBuf_other.m(), AinvBuf_quant.n(), MINUS_ONE<float>(),
+                gpu_blas_mmul(handle, 'N', 'T', AinvBuf_quant.m(), UBuf_other.m(), AinvBuf_quant.n(), MINUS_ONE<float>(),
                     AinvBuf_quant.Data(), AinvBuf_quant.m(),
                     UBuf_other.Data(), UBuf_other.m(), ZERO<float>(),
                     quantBuf.Data(), quantBuf.m());
@@ -2320,7 +2319,7 @@ namespace PEXSI{
       for (Int supidx=0; supidx<stepSuper; supidx++){ //对于每一个要操作的supernode
         SuperNodeBufferType & snode = arrSuperNodes[supidx];
 
-        ComputeDiagUpdate(snode, quantSuperNode);//计算第四步Lck^T * Ack ^ -1，这里有一个量化，
+        ComputeDiagUpdate(snode, handle, quantSuperNode);//计算第四步Lck^T * Ack ^ -1，这里有一个量化，
 
         //Get the reduction tree
         TreeReduce<T> * redDTree = redToAboveTree_[snode.Index];
@@ -5157,13 +5156,13 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
     } 		// -----  end of method PMatrix::ConstructCommunicationPattern_P2p  ----- 
 
   template<typename T> 
-    void PMatrix<T>::SelInv	( std::set<std::string> & quantSuperNode )
+    void PMatrix<T>::SelInv	(cublasHandle_t& handle, std::set<std::string> & quantSuperNode )
     {
 
       if(optionsFact_->Symmetric == 0){
         ErrorHandling( "The matrix is not symmetric, this routine can't handle it !" );
       }
-      SelInv_P2p	( quantSuperNode );
+      SelInv_P2p	(handle, quantSuperNode );
 
 
 #ifdef GEMM_PROFILE
@@ -5230,7 +5229,7 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
 
 
   template<typename T> 
-    void PMatrix<T>::SelInv_P2p	(std::set<std::string> & quantSuperNode  )
+    void PMatrix<T>::SelInv_P2p	(cublasHandle_t& handle, std::set<std::string> & quantSuperNode  )
     {
       TIMER_START(SelInv_P2p);
 
@@ -5248,7 +5247,7 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
 
       auto itNextSync = syncPoints_.begin();//同步点，应该是每次并行完都要同步一次
       for (lidx=0; lidx<numSteps ; lidx++){//开始numSteps次并行
-        SelInvIntra_P2p(lidx,rank, quantSuperNode);
+        SelInvIntra_P2p(lidx,rank, handle, quantSuperNode);
 
 #if ( _DEBUGlevel_ >= 1 )
         statusOFS<<"OUT "<<lidx<<"/"<<numSteps<<" "<<limIndex_<<std::endl;
@@ -5289,7 +5288,7 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
 
 
   template<typename T> 
-    void PMatrix<T>::PreSelInv	(std::set<std::string> & quantSuperNode)
+    void PMatrix<T>::PreSelInv	(cublasHandle_t& handle, std::set<std::string> & quantSuperNode)
     {
       if (options_->symmetricStorage!=1){
 #ifdef _PRINT_STATS_
@@ -5391,7 +5390,7 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
                 // GetTime(timeEnd);
                 // timeCost += timeEnd - timeSta;
                 // std::cout<<"Copy LB done"<<std::endl;
-                gpu_blas_trsm('R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
+                gpu_blas_trsm(handle, 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
                 // blas::Trsm('R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
                 // blas::Trsm( 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(),
                 //   (const float*)nzvalLDiag.Data(), LB.numCol, (float)LB.nzval.Data(), LB.numRow );
