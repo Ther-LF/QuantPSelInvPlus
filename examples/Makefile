@@ -58,7 +58,7 @@ run_inertia: run_inertia.o ${PEXSI_LIB}
 	($(LOADER) -o $@_${SUFFIX} run_inertia.o  $(LOADOPTS) )
 
 run_pselinv: run_pselinv.o ${PEXSI_LIB} ../include/pexsi/*.hpp 
-	($(LOADER) -o $@_${SUFFIX} run_pselinv.o ../src/lapack.o ./cublaslib.o -lcublas -lcudart -L/usr/local/cuda/lib64 $(LOADOPTS) )
+	($(LOADER) -o $@_${SUFFIX} run_pselinv.o ../src/lapack.o  -lcublas -lcudart -L/usr/local/cuda/lib64 $(LOADOPTS) )
 
 my_readHCSC: my_readHCSC.o ${PEXSI_LIB} ../include/pexsi/*.hpp 
 	($(LOADER) -o $@_${SUFFIX} my_readHCSC.o  $(LOADOPTS) )

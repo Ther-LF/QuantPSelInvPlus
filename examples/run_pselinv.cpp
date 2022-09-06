@@ -49,6 +49,7 @@ such enhancements or derivative works thereof, in binary and source code form.
 #include <iostream>
 #include <iterator>
 #include <cublas_v2.h>
+#include <cuda_runtime.h>
 // #define _MYCOMPLEX_
 
 #ifdef _MYCOMPLEX_
@@ -601,8 +602,8 @@ int main(int argc, char **argv)
 
           cublasHandle_t handle;// Gpu device handle
           // Initialize the handle
-          initializeHandle(handle);
-
+          // initializeHandle(handle);
+          cublasCreate(&handle);
           Real timeTotalSelInvSta, timeTotalSelInvEnd;
 
           NumVec<MYSCALAR> diag;
@@ -927,7 +928,8 @@ int main(int argc, char **argv)
             f<<std::endl;
             f.close();
           }
-          destoryHandle(handle);
+          // destoryHandle(handle);
+          cublasDestroy(handle);
           delete PMlocPtr;
           delete superPtr;
           delete g1Ptr;

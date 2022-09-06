@@ -26,7 +26,7 @@ void destoryHandle(cublasHandle_t& handle){
 
 // Multiply the arrays A and B on GPU and save the result in C
 // C(m,n) = A(m,k) * B(k,n)
-void gpu_blas_mmul(cublasHandle_t& handle, char transA, char transB, int m, int n, int k, 
+void gpu_blas_smmul(cublasHandle_t& handle, char transA, char transB, int m, int n, int k, 
   float alpha, const float* A, int lda, const float* B, int ldb,
   float beta,        float* C, int ldc ){
 
@@ -68,7 +68,7 @@ void gpu_blas_mmul(cublasHandle_t& handle, char transA, char transB, int m, int 
 	cudaFree(d_C);	
 }
 
-void gpu_blas_trsm(cublasHandle_t& handle, char side, char uplo, char trans, char unit, int m, int n,
+void gpu_blas_strsm(cublasHandle_t& handle, char side, char uplo, char trans, char unit, int m, int n,
   float alpha, const float* A, int lda, float* B, int ldb ){
 
 	// settings in gpu

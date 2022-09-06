@@ -49,18 +49,241 @@ such enhancements or derivative works thereof, in binary and source code form.
 #include <list>
 #include <limits>
 #include <cublas_v2.h>
+#include <cuda_runtime.h>
 #include "pexsi/timer.h"
 #include "pexsi/superlu_dist_interf.hpp"
 
 #include "pexsi/flops.hpp"
 #include <omp.h>
 
-void gpu_blas_mmul(cublasHandle_t& handle, char transA, char transB, int m, int n, int k, 
+// Multiply the arrays A and B on GPU and save the result in C
+// C(m,n) = A(m,k) * B(k,n)
+void gpu_blas_smmul(cublasHandle_t& handle, char transA, char transB, int m, int n, int k, 
   float alpha, const float* A, int lda, const float* B, int ldb,
-  float beta,        float* C, int ldc );
+  float beta,        float* C, int ldc ){
 
-void gpu_blas_trsm(cublasHandle_t& handle, char side, char uplo, char trans, char unit, int m, int n,
-  float alpha, const float* A, int lda, float* B, int ldb );
+	// Allocate 3 arrays on GPU
+	float *d_A, *d_B, *d_C;
+	cudaMalloc(&d_A,m * k * sizeof(float));
+	cudaMalloc(&d_B,k * n * sizeof(float));
+	cudaMalloc(&d_C,m * n * sizeof(float));
+
+    // Copy the data to device
+    cudaMemcpy(d_A, A, m * k * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, n * k * sizeof(float), cudaMemcpyHostToDevice);
+    // if(abs(beta - 0) != 0.000001){
+    //   cudaMemcpy(d_C, C, m * n * sizeof(float), cudaMemcpyHostToDevice);
+    // }
+
+
+	// Create a handle for CUBLAS
+	// cublasHandle_t handle;
+	// cublasCreate(&handle);
+	cublasOperation_t opA = CUBLAS_OP_N;
+	cublasOperation_t opB = CUBLAS_OP_N;
+	if(transA == 'T'){
+		opA = CUBLAS_OP_T;
+	}
+	if(transB == 'T'){
+		opB = CUBLAS_OP_T;
+	}
+	
+	// Do the actual multiplication
+	cublasSgemm(handle, opA, opB, m, n, k, &alpha, d_A, lda, d_B, ldb, &beta, d_C, ldc);
+	// Destroy the handle
+	// cublasDestroy(handle);
+
+	// Copy (and print) the result on host memory
+	cudaMemcpy(C,d_C,m * n * sizeof(float),cudaMemcpyDeviceToHost);
+
+	//Free GPU memory
+	cudaFree(d_A);
+	cudaFree(d_B);
+	cudaFree(d_C);	
+}
+void gpu_blas_dmmul(cublasHandle_t& handle, char transA, char transB, int m, int n, int k, 
+  double alpha, const double* A, int lda, const double* B, int ldb,
+  double beta,        double* C, int ldc ){
+
+	// Allocate 3 arrays on GPU
+	double *d_A, *d_B, *d_C;
+	cudaMalloc(&d_A,m * k * sizeof(double));
+	cudaMalloc(&d_B,k * n * sizeof(double));
+	cudaMalloc(&d_C,m * n * sizeof(double));
+
+    // Copy the data to device
+    cudaMemcpy(d_A, A, m * k * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, n * k * sizeof(double), cudaMemcpyHostToDevice);
+    // if(abs(beta - 0) != 0.000001){
+    cudaMemcpy(d_C, C, m * n * sizeof(double), cudaMemcpyHostToDevice);
+    // }
+    
+    
+
+
+	// Create a handle for CUBLAS
+	// cublasHandle_t handle;
+	// cublasCreate(&handle);
+	cublasOperation_t opA = CUBLAS_OP_N;
+	cublasOperation_t opB = CUBLAS_OP_N;
+	if(transA == 'T'){
+		opA = CUBLAS_OP_T;
+	}
+	if(transB == 'T'){
+		opB = CUBLAS_OP_T;
+	}
+	
+	// Do the actual multiplication
+	cublasDgemm(handle, opA, opB, m, n, k, &alpha, d_A, lda, d_B, ldb, &beta, d_C, ldc);
+	// Destroy the handle
+	// cublasDestroy(handle);
+
+	// Copy (and print) the result on host memory
+	cudaMemcpy(C,d_C,m * n * sizeof(double),cudaMemcpyDeviceToHost);
+
+	//Free GPU memory
+	cudaFree(d_A);
+	cudaFree(d_B);
+	cudaFree(d_C);	
+}
+void gpu_blas_dtrsm(cublasHandle_t& handle, char side, char uplo, char trans, char unit, int m, int n,
+  double alpha, const double* A, int lda, double* B, int ldb ){
+
+	// settings in gpu
+	cublasSideMode_t cuSide;
+	cublasFillMode_t cuUplo;
+	cublasOperation_t cuTrans;
+	cublasDiagType_t cuUnit;
+
+	int rowA, colA, rowB = m, colB = n;
+	// modify the settings
+	if(side == 'L'){
+		rowA = lda;
+		colA = m;
+		cuSide = CUBLAS_SIDE_LEFT;
+	}else if(side == 'R'){
+		rowA = lda;
+		colA = n;
+		cuSide = CUBLAS_SIDE_RIGHT;
+	}
+
+
+	if(uplo == 'L'){
+		cuUplo = CUBLAS_FILL_MODE_LOWER;
+	}else if(uplo == 'U'){
+		cuUplo = CUBLAS_FILL_MODE_UPPER;
+	}else{ //这里不知道FULL是什么字符就用了else了，后面会补上的
+		cuUplo = CUBLAS_FILL_MODE_FULL;
+	}
+
+	if(trans == 'T'){
+		cuTrans = CUBLAS_OP_T;
+	}else if(trans == 'N'){
+		cuTrans = CUBLAS_OP_N;
+	}
+
+	if(unit == 'U'){
+		cuUnit = CUBLAS_DIAG_UNIT;
+	}else{ //这里不知道NON_UNIT是什么字符就用了else了，后面会补上的
+		cuUnit = CUBLAS_DIAG_NON_UNIT;
+	}
+
+	// Allocate 3 arrays on GPU
+	double *d_A, *d_B;
+	cudaMalloc(&d_A,rowA * colA * sizeof(double));
+	cudaMalloc(&d_B,rowB * colB * sizeof(double));
+
+	// Copy the data to device
+  cudaMemcpy(d_A, A, rowA * colA * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_B, B, rowB * colB * sizeof(double), cudaMemcpyHostToDevice);
+
+	// Create a handle for CUBLAS
+	// cublasHandle_t handle;
+	// cublasCreate(&handle);
+
+	// Do the actual trsm
+	cublasDtrsm(handle, cuSide, cuUplo, cuTrans, cuUnit, m, n, &alpha, d_A, lda, d_B, ldb);
+	// Destroy the handle
+	// cublasDestroy(handle);
+
+	// Copy (and print) the result on host memory
+	cudaMemcpy(B, d_B, m * n * sizeof(double), cudaMemcpyDeviceToHost);
+
+	//Free GPU memory
+	cudaFree(d_A);
+	cudaFree(d_B);
+}
+
+
+void gpu_blas_strsm(cublasHandle_t& handle, char side, char uplo, char trans, char unit, int m, int n,
+  float alpha, const float* A, int lda, float* B, int ldb ){
+
+	// settings in gpu
+	cublasSideMode_t cuSide;
+	cublasFillMode_t cuUplo;
+	cublasOperation_t cuTrans;
+	cublasDiagType_t cuUnit;
+
+	int rowA, colA, rowB = m, colB = n;
+	// modify the settings
+	if(side == 'L'){
+		rowA = lda;
+		colA = m;
+		cuSide = CUBLAS_SIDE_LEFT;
+	}else if(side == 'R'){
+		rowA = lda;
+		colA = n;
+		cuSide = CUBLAS_SIDE_RIGHT;
+	}
+
+
+	if(uplo == 'L'){
+		cuUplo = CUBLAS_FILL_MODE_LOWER;
+	}else if(uplo == 'U'){
+		cuUplo = CUBLAS_FILL_MODE_UPPER;
+	}else{ //这里不知道FULL是什么字符就用了else了，后面会补上的
+		cuUplo = CUBLAS_FILL_MODE_FULL;
+	}
+
+	if(trans == 'T'){
+		cuTrans = CUBLAS_OP_T;
+	}else if(trans == 'N'){
+		cuTrans = CUBLAS_OP_N;
+	}
+
+	if(unit == 'U'){
+		cuUnit = CUBLAS_DIAG_UNIT;
+	}else{ //这里不知道NON_UNIT是什么字符就用了else了，后面会补上的
+		cuUnit = CUBLAS_DIAG_NON_UNIT;
+	}
+
+	// Allocate 3 arrays on GPU
+	float *d_A, *d_B;
+	cudaMalloc(&d_A,rowA * colA * sizeof(float));
+	cudaMalloc(&d_B,rowB * colB * sizeof(float));
+
+	// Copy the data to device
+    cudaMemcpy(d_A, A, rowA * colA * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, rowB * colB * sizeof(float), cudaMemcpyHostToDevice);
+
+	// Create a handle for CUBLAS
+	// cublasHandle_t handle;
+	// cublasCreate(&handle);
+
+	// Do the actual trsm
+	cublasStrsm(handle, cuSide, cuUplo, cuTrans, cuUnit, m, n, &alpha, d_A, lda, d_B, ldb);
+	// Destroy the handle
+	// cublasDestroy(handle);
+
+	// Copy (and print) the result on host memory
+	cudaMemcpy(B, d_B, m * n * sizeof(float), cudaMemcpyDeviceToHost);
+
+	//Free GPU memory
+	cudaFree(d_A);
+	cudaFree(d_B);
+}
+
+
 #define MPI_MAX_COMM (1024)
 #define BCAST_THRESHOLD 16
 
@@ -1234,9 +1457,18 @@ namespace PEXSI{
             //Lkk = -1 * (A^-1)^T * L + 1 * Lkk
             //但是这里为什么是A-1的转置不太懂
             //这里Lik和A-1的下标都是一样的，所以直接判断Lik的坐标就可以进行量化了
-            blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
-                MINUS_ONE<T>(), &snode.LUpdateBuf( snode.RowLocalPtr[ib-startIb], 0 ), snode.LUpdateBuf.m(),
-                LB.nzval.Data(), LB.nzval.m(), ONE<T>(), snode.DiagBuf.Data(), snode.DiagBuf.m() );
+
+            // NumMat<double> tmpCuda(snode.DiagBuf.m(), snode.DiagBuf.n());
+            NumMat<double> tmp_quant(LB.numRow, snode.DiagBuf.m());
+            for(int j = 0;j<tmp_quant.n(); j++){
+              for(int i = 0;i<tmp_quant.m();i++){
+                tmp_quant(i, j) = snode.LUpdateBuf(snode.RowLocalPtr[ib - startIb] + i, j);
+              }
+            }
+            gpu_blas_dmmul(handle, 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
+                MINUS_ONE<T>(), tmp_quant.Data(), tmp_quant.m(),
+                LB.nzval.Data(), LB.nzval.m(),ONE<T>(), snode.DiagBuf.Data(), snode.DiagBuf.m() );
+
           }else{
             //进行量化，但是由于精度不同，应该分为两步
             //先把A-1和L进行量化
@@ -1265,7 +1497,7 @@ namespace PEXSI{
             //然后用一个临时的量化Lkk保存它们的结果，而不能直接加进来
             NumMat<float> DiagBuf_quant(SuperSize( snode.Index, super_ ), SuperSize( snode.Index, super_ ));
 
-            gpu_blas_mmul(handle, 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
+            gpu_blas_smmul(handle, 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
                 MINUS_ONE<float>(), tmp_quant.Data(), tmp_quant.m(),
                 LB_quant.Data(), LB.nzval.m(), ZERO<float>(), DiagBuf_quant.Data(), snode.DiagBuf.m() );
             // blas::Gemm( 'T', 'N', snode.DiagBuf.m(), snode.DiagBuf.n(), LB.numRow, 
@@ -2121,10 +2353,14 @@ namespace PEXSI{
                 //没错！这里就是第三步，这里有一个U的转置！
                 //所以一定是第三步！
                 //下面的意思表示:LUpdateBuf = -1 * AinvBuf * Ubuf^T + 0 * LUpdateBuf
-                blas::Gemm( 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
+                // blas::Gemm( 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
+                //     AinvBuf.Data(), AinvBuf.m(), 
+                //     UBuf.Data(), UBuf.m(), ZERO<T>(),
+                //     snode.LUpdateBuf.Data(), snode.LUpdateBuf.m() );
+                gpu_blas_dmmul(handle, 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
                     AinvBuf.Data(), AinvBuf.m(), 
                     UBuf.Data(), UBuf.m(), ZERO<T>(),
-                    snode.LUpdateBuf.Data(), snode.LUpdateBuf.m() ); 
+                    snode.LUpdateBuf.Data(), snode.LUpdateBuf.m() );
                 TIMER_STOP(Compute_Sinv_LT_GEMM);
               }else{//如果只有UBuf进行量化，AinvBuf没有量化的supernode
                 // std::cout<<"Step 3 : UBuf Quant!"<<std::endl;
@@ -2147,14 +2383,17 @@ namespace PEXSI{
                 //公式为-1 * AinvBuf * (UBuf + UBuf_other)^T
                 //即(1) -1 * AinvBuf * Ubuf^T + (2) -1 * AinvBuf* UBuf_other^T
                 //这里首先计算(1)，并且把结果保存在最终的结果LUpdateBuf中，后面的结果都是直接加在上面的
-
-                blas::Gemm( 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
+                gpu_blas_dmmul(handle, 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
                     AinvBuf.Data(), AinvBuf.m(), 
                     UBuf.Data(), UBuf.m(), ZERO<T>(),
                     snode.LUpdateBuf.Data(), snode.LUpdateBuf.m() ); 
+                // blas::Gemm( 'N', 'T', AinvBuf.m(), UBuf.m(), AinvBuf.n(), MINUS_ONE<T>(), 
+                //     AinvBuf.Data(), AinvBuf.m(), 
+                //     UBuf.Data(), UBuf.m(), ZERO<T>(),
+                //     snode.LUpdateBuf.Data(), snode.LUpdateBuf.m() ); 
                 
                 //然后计算(2)，将结果保存在quantBuf中
-                gpu_blas_mmul(handle, 'N', 'T', AinvBuf_quant.m(), UBuf_other.m(), AinvBuf_quant.n(), MINUS_ONE<float>(),
+                gpu_blas_smmul(handle, 'N', 'T', AinvBuf_quant.m(), UBuf_other.m(), AinvBuf_quant.n(), MINUS_ONE<float>(),
                     AinvBuf_quant.Data(), AinvBuf_quant.m(),
                     UBuf_other.Data(), UBuf_other.m(), ZERO<float>(),
                     quantBuf.Data(), quantBuf.m());
@@ -5360,8 +5599,10 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
               //第四个参数U表示A为单位三角矩阵，对角线为1
               //最后会把结果覆盖到LB.nzvl.Data()里面
               if(quantSuperNode.find(ss.str()) == quantSuperNode.end()){
-                blas::Trsm( 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<T>(),
+                gpu_blas_dtrsm(handle, 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<T>(),
                   nzvalLDiag.Data(), LB.numCol, LB.nzval.Data(), LB.numRow );
+                // blas::Trsm( 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<T>(),
+                //   nzvalLDiag.Data(), LB.numCol, LB.nzval.Data(), LB.numRow );
               }else{
                 //这是我魔改的部分
                 // std::cout<<"Step 2 : Quant "<<ss.str()<<std::endl;
@@ -5390,7 +5631,7 @@ sstm.rdbuf()->pubsetbuf((char*)tree->GetLocalBuffer(), tree->GetMsgSize());
                 // GetTime(timeEnd);
                 // timeCost += timeEnd - timeSta;
                 // std::cout<<"Copy LB done"<<std::endl;
-                gpu_blas_trsm(handle, 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
+                gpu_blas_strsm(handle, 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
                 // blas::Trsm('R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(), (const float*)nzvalLDiag_float.Data(), LB.numCol, LB_float.Data(), LB.numRow);
                 // blas::Trsm( 'R', 'L', 'N', 'U', LB.numRow, LB.numCol, ONE<float>(),
                 //   (const float*)nzvalLDiag.Data(), LB.numCol, (float)LB.nzval.Data(), LB.numRow );

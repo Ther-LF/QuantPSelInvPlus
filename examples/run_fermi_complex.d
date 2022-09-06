@@ -269,6 +269,18 @@ run_fermi_complex.o run_fermi_complex.d : run_fermi_complex.cpp /usr/include/std
  /usr/local/cuda/include/cuda_bf16.hpp \
  /usr/local/cuda/include/library_types.h \
  /software/pexsi_v2.0.0/include/pexsi/pselinv_impl.hpp \
+ /usr/local/cuda/include/cuda_runtime.h \
+ /usr/local/cuda/include/crt/host_config.h \
+ /usr/local/cuda/include/builtin_types.h \
+ /usr/local/cuda/include/device_types.h \
+ /usr/local/cuda/include/surface_types.h \
+ /usr/local/cuda/include/texture_types.h \
+ /usr/local/cuda/include/channel_descriptor.h \
+ /usr/local/cuda/include/cuda_runtime_api.h \
+ /usr/local/cuda/include/cuda_device_runtime_api.h \
+ /usr/local/cuda/include/driver_functions.h \
+ /usr/local/cuda/include/vector_functions.h \
+ /usr/local/cuda/include/vector_functions.hpp \
  /software/pexsi_v2.0.0/include/pexsi/flops.hpp \
  /usr/lib/gcc/x86_64-linux-gnu/9/include/omp.h \
  /software/pexsi_v2.0.0/include/pexsi/SuperLUMatrix.hpp \
